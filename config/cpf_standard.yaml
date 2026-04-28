@@ -1,0 +1,69 @@
+schema_version: 1
+scenario_id: cpf-standard
+version: 3
+effective_from: "2025-01-01"
+
+applies_to:
+  session_type: cpf
+
+checkpoints:
+  - id: cp_25
+    at_session_progress: 0.25
+    profiles:
+      - id: profile_inactive
+        when_progress_ratio: [null, 0.1]
+        actions:
+          - { channel: email, template_id: cpf_wakeup_email }
+          - { channel: sms, template_id: cpf_wakeup_sms }
+          - { channel: call, template_id: cpf_wakeup_call }
+      - id: profile_lagging
+        when_progress_ratio: [0.1, 0.6]
+        actions:
+          - { channel: email, template_id: cpf_nudge_email }
+          - { channel: sms, template_id: cpf_nudge_sms }
+      - id: profile_on_track
+        when_progress_ratio: [0.6, null]
+        actions: []
+
+  - id: cp_50
+    at_session_progress: 0.5
+    profiles:
+      - id: profile_inactive
+        when_progress_ratio: [null, 0.1]
+        actions:
+          - { channel: email, template_id: cpf_mid_email }
+          - { channel: sms, template_id: cpf_mid_sms }
+      - id: profile_lagging
+        when_progress_ratio: [0.1, 0.6]
+        actions:
+          - { channel: email, template_id: cpf_mid_nudge_email }
+      - id: profile_on_track
+        when_progress_ratio: [0.6, null]
+        actions: []
+
+  - id: cp_75
+    at_session_progress: 0.75
+    profiles:
+      - id: profile_inactive
+        when_progress_ratio: [null, 0.1]
+        actions:
+          - { channel: email, template_id: cpf_late_email }
+          - { channel: call, template_id: cpf_late_call }
+      - id: profile_lagging
+        when_progress_ratio: [0.1, 0.6]
+        actions:
+          - { channel: sms, template_id: cpf_late_sms }
+      - id: profile_on_track
+        when_progress_ratio: [0.6, null]
+        actions: []
+
+global:
+  quiet_hours:
+    from: "21:00"
+    to: "09:00"
+    tz: "Europe/Paris"
+  no_sunday_for_channels: [sms, call]
+  dedupe_window_days_per_channel:
+    email: 3
+    sms: 7
+    call: 14

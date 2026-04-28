@@ -43,7 +43,7 @@ MOCK_API_BASE_URL=https://votre-endpoint-de-mock.example.com
 MOCK_X_API_KEY=
 ```
 
-Les clients HTTP chargent ces variables via `os.environ` au moment de l’appel. Pour que `pytest` ou un script voient le fichier `.env`, soit vous **exportez** les variables dans le shell avant de lancer les commandes, soit vous chargez `.env` dans votre code d’orchestration (par ex. `python-dotenv`) une fois l’exercice en cours — à votre convenance.
+Le fichier **`.env` à la racine du dépôt** est chargé automatiquement au premier import du paquet `walter_relance` (`python-dotenv`, voir [`walter_relance/env.py`](walter_relance/env.py)). Les clients HTTP lisent ensuite ces variables via `os.environ`. Les variables **déjà définies dans le shell** (`export …`) restent prioritaires et ne sont pas écrasées.
 
 ---
 
@@ -85,6 +85,7 @@ Remplacez `uv run` par l’activation du venv et l’appel direct (`pytest`, `ru
 | Afficher les prints | `uv run pytest -s` |
 | Lint (optionnel) | `uv run ruff check walter_relance tests` |
 | Formatter / fix auto (optionnel) | `uv run ruff check --fix walter_relance tests` |
+| Appels HTTP **réels** vers le mock avec logs détaillés | `uv run walter-relance-live <student_id>` (voir ci-dessous) |
 
 Variables d’environnement **pour une seule commande** (ex. clé API sans éditer `.env`) :
 
@@ -95,6 +96,19 @@ uv run pytest
 ```
 
 `pytest` lit le `pythonpath` du projet (`pyproject.toml`) : le paquet `walter_relance` à la racine du dépôt est importable sans réglage supplémentaire.
+
+### Exécution contre le mock (HTTP réel)
+
+La console de commandes **`walter-relance-live`** enchaîne des **GET LMS** contre `MOCK_API_BASE_URL` (et lit `.env` comme le reste du paquet) et affiche dans la console chaque **requête** (méthode, URL, en-têtes avec `x-api-key` masqué, corps si présent) et chaque **réponse** (code, corps).
+
+```bash
+# .env doit contenir MOCK_API_BASE_URL (et MOCK_X_API_KEY / X_API_KEY si le mock l’exige)
+uv sync --extra dev
+uv run walter-relance-live student-test-validated
+uv run walter-relance-live student-test-inactive-at-25
+```
+
+Ensuite un appel **`process_student`** est tenté (sauf avec `--skip-process`) : tant que l’orchestrateur reste squelette (`NotImplementedError`), seule la partie **smoke LMS** produit du trafic HTTP détaillé. Une fois `process_student` implémenté avec `LmsClient` / `ChannelsClient` utilisant vos propres instances `httpx.Client`, vos appels suivis devront passer un client configuré comme dans [`walter_relance/http_logging.py`](walter_relance/http_logging.py) + [`walter_relance/run_live.py`](walter_relance/run_live.py) pour conserver ces logs également sur POST `/channels/*`.
 
 ### État initial des tests
 
@@ -147,8 +161,11 @@ walter_relance/
   models.py                   # Modèles fixes — évitez d’en modifier les signatures tant que l’exercice utilise ces types
   engine.py                   # À compléter — cœur métier pur
   orchestrator.py             # À compléter — glue HTTP + repos
-  clients/lms.py              # Client LMS (httpx), fourni
-  clients/channels.py         # Emails/SMS/Appels sous un même pattern, fourni
+  run_live.py                 # CLI ``walter-relance-live`` : smoke HTTP réel contre le mock (logs détaillés)
+  env.py                      # Chargement du ``.env`` à la racine
+  http_logging.py             # Hooks httpx pour journaliser requêtes/réponses
+  clients/lms.py              # Client LMS (httpx), fourni — client HTTP injectable pour les logs live
+  clients/channels.py         # Idem pour les POST canaux
   repositories/
     scenario_repository.py    # Lecture YAML depuis config/
     action_log_repository.py  # Implémentation mémoire locale des logs d’actions

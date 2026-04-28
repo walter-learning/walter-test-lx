@@ -20,9 +20,27 @@ class Delivery:
 class ChannelsClient:
     """Trois canaux (email, sms, call) sous le même contrat HTTP."""
 
-    def __init__(self, base_url: str, timeout_s: float = 5.0) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        timeout_s: float = 5.0,
+        *,
+        http_client: httpx.Client | None = None,
+    ) -> None:
         self._base = base_url.rstrip("/")
         self._timeout = timeout_s
+        self._owns_client = http_client is None
+        self._client = http_client or httpx.Client(timeout=timeout_s)
+
+    def close(self) -> None:
+        if self._owns_client:
+            self._client.close()
+
+    def __enter__(self) -> ChannelsClient:
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        self.close()
 
     def _channel_path(self, channel: Channel) -> str:
         return f"/channels/{channel}"
@@ -49,7 +67,7 @@ class ChannelsClient:
             "scheduled_at": scheduled_at.isoformat() if scheduled_at else None,
         }
         headers = {"Idempotency-Key": idempotency_key, **mock_request_headers()}
-        r = httpx.post(url, json=body, headers=headers, timeout=self._timeout)
+        r = self._client.post(url, json=body, headers=headers, timeout=self._timeout)
         if r.status_code == 429:
             raise RateLimitError(r.text)
         if r.status_code == 409:

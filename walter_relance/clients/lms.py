@@ -16,16 +16,34 @@ class LmsClient:
     Point de discussion au debrief : politique de retry, idempotence lecture, cache.
     """
 
-    def __init__(self, base_url: str, timeout_s: float = 3.0) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        timeout_s: float = 3.0,
+        *,
+        http_client: httpx.Client | None = None,
+    ) -> None:
         self._base = base_url.rstrip("/")
         self._timeout = timeout_s
+        self._owns_client = http_client is None
+        self._client = http_client or httpx.Client(timeout=timeout_s)
+
+    def close(self) -> None:
+        if self._owns_client:
+            self._client.close()
+
+    def __enter__(self) -> LmsClient:
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        self.close()
 
     def _get(self, path: str) -> dict:
         url = f"{self._base}{path}"
         last_err: Exception | None = None
         for attempt in range(2):
             try:
-                r = httpx.get(url, timeout=self._timeout, headers=mock_request_headers())
+                r = self._client.get(url, timeout=self._timeout, headers=mock_request_headers())
                 if r.status_code >= 500 and attempt == 0:
                     time.sleep(0.05)
                     continue

@@ -31,43 +31,41 @@ Le métier utilise un autre outil pour éditer—ton job ici est de **consommer*
 
 ### Progression temporelle de session
 
-\[
-\text{session\_progress} =
-\max\left(0, \min\left(1,\ \frac{d_\text{{écoulés}}}{(date_\text{{fin}} - date_\text{{début}}).days}\right)\right)\right).
-\]
+- **`d_ecoules`** : nombre de jours civils entre `session.starting_date` (inclus) et `now.date()` (comparaison sur des **dates** simples pour le test).
+- **`duree_calendaire`** : `(session.ending_date - session.starting_date).days` (fenêtre de session en jours).
+- **`session_progress`** entre 0 et 1 :
 
-Où \(d_\text{{écoulés}}\) est le nombre de jours civils entre `starting_date` (inclus) et `now.date()` (référence date simple pour le test).
+```text
+session_progress = min(1, max(0, d_ecoules / duree_calendaire))
+```
 
 ### Checkpoint courant
 
-On sélectionne le checkpoint **`at_session_progress`** le plus élevé tel que **`session_progress >= at_session_progress - eps`** avec `eps` très petit (ex: `1e-9`).  
+On sélectionne le checkpoint dont le champ **`at_session_progress`** est le **plus grand** tout en restant **atteint ou dépassé** par `session_progress` (en pratique : prendre le dernier checkpoint tel que `session_progress >= at_session_progress - eps`, avec `eps` très petit, ex. `1e-9`).  
 Sans checkpoint éligible, liste d’actions vide.
 
-### Ratio de retard / niveau \( \text{Niveau}(\text{LMS}) vs attente sous ce checkpoint \)
+### Ratio de retard (niveau LMS vs attente sous ce checkpoint)
 
-Nombre total de secondes de formation attendue pour terminer :
+**Durée totale** de formation prévue en secondes :
 
-\[
-T_\text{total} = \texttt{product\_duration\_h} \times 3600
-.\]
+```text
+T_total = session.product_duration_h * 3600
+```
 
-Fraction réellement suivie :
+**Fraction du parcours réellement suivie** (plafonnée à 1) :
 
-\[
-f_\text{réel} = \min\left(1,\ \frac{\texttt{session\_time\_sec}}{T_\text{total}}\right).
-\]
+```text
+f_reel = min(1, progress.session_time_sec / T_total)
+```
 
-Sous un checkpoint \(c\) avec seuil \(\alpha = `at_session_progress`\):
+Sous un checkpoint avec seuil **`alpha`** = `at_session_progress` du checkpoint courant, le **ratio de retard** utilisé pour les profils `when_progress_ratio` est :
 
-\[
-r = 
-\begin{cases}
-0 & \text{si } \alpha = 0 \\[4pt]
-\dfrac{f_\text{réel}}{\alpha} & \text{sinon}
-\end{cases}
-\]
+```text
+si alpha = 0      -> r = 0
+sinon             -> r = f_reel / alpha
+```
 
-Un profil \((a,b)\) sur `when_progress_ratio` matche si \((a < r \le b)\) en interprétant `null` comme \(-\infty\) / \(+\infty\) pour les bornes ouvertes — aligné sur la logique « range_start < ratio <= range_end ».
+Un profil défini par `(range_start, range_end)` sur `when_progress_ratio` **matche** si `range_start < r <= range_end`. Si `range_start` est **`null`**, il n’y a pas de limite basse (tout `r` assez petit est accepté côté bas) ; si `range_end` est **`null`**, pas de limite haute — même idée que des bornes « ouvertes à l’infini » sans utiliser de symboles mathématiques dans le code.
 
 ### Opt-out
 
@@ -87,10 +85,6 @@ Proposition de convention (à respecter pour que les tests d’intégration pass
 ```
 
 `scheduled_at_bucket` peut être la date ISO du jour planifié si relance journalière.
-
-## Quiet hours (rappel pour le 6e test — révélé en live)
-
-Entre `global.quiet_hours.from` et `global.quiet_hours.to` (fuseau `tz`), **reporter** `scheduled_at` au prochain créneau autorisé — **pour les trois canaux** de la même façon.
 
 ## Dimanche
 

@@ -5,6 +5,7 @@ from urllib.parse import quote
 
 import httpx
 
+from .mock_headers import mock_request_headers
 from walter_relance.exceptions import LmsError
 from walter_relance.models import Preferences, Progress, Session, Student
 
@@ -24,7 +25,7 @@ class LmsClient:
         last_err: Exception | None = None
         for attempt in range(2):
             try:
-                r = httpx.get(url, timeout=self._timeout)
+                r = httpx.get(url, timeout=self._timeout, headers=mock_request_headers())
                 if r.status_code >= 500 and attempt == 0:
                     time.sleep(0.05)
                     continue

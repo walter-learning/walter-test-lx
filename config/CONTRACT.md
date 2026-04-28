@@ -5,7 +5,7 @@ Le stockage est fourni en **YAML** pour le test technique ; en production un aut
 
 ## Schéma
 
-- Défini implicitement par les modèles Pydantic (`Scenario`, `Checkpoint`, `Profile`, `GlobalRules`… dans `src/walter_relance/models.py`).
+- Défini implicitement par les modèles Pydantic (`Scenario`, `Checkpoint`, `Profile`, `GlobalRules`… dans `walter_relance/models.py`).
 - `extra=forbid` : toute clé inconnue est rejetée à la désérialisation.
 - `schema_version` (racine du document) : incrémente quand **la forme du schéma** change (nouveaux champs obligatoires, renommage).
 - `version` + `scenario_id` : version **du contenu** d’un même scénario logique (`cpf-standard` v3 puis v4, etc.).

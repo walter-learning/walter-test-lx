@@ -28,8 +28,8 @@ def process_student(student_id: str, scenario_id: str) -> ProcessResult:
     6. Append successful actions to ActionLogRepository
     """
     raise NotImplementedError(
-        "À implémenter pendant le test. Base URL du mock : env MOCK_API_BASE_URL "
-        "(voir README.md et clients fournis)."
+        "À implémenter pendant le test. Base URL du mock : env MOCK_API_BASE_URL ; "
+            "clé optionnelle : MOCK_X_API_KEY ou X_API_KEY (voir README.md et clients fournis)."
     )
 
 

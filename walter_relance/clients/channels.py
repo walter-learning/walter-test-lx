@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 
 import httpx
 
+from .mock_headers import mock_request_headers
 from walter_relance.exceptions import ChannelError, IdempotencyConflict, RateLimitError
 from walter_relance.models import Channel
 
@@ -47,7 +48,7 @@ class ChannelsClient:
             "params": params,
             "scheduled_at": scheduled_at.isoformat() if scheduled_at else None,
         }
-        headers = {"Idempotency-Key": idempotency_key}
+        headers = {"Idempotency-Key": idempotency_key, **mock_request_headers()}
         r = httpx.post(url, json=body, headers=headers, timeout=self._timeout)
         if r.status_code == 429:
             raise RateLimitError(r.text)
